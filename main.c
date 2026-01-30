@@ -26,7 +26,7 @@ int main(void) {
             __asm__ volatile("nop");
         }
         GPIO_BSRR(GPIOA) = (1 << PIN + 16);
-        for (uint32_t i = 0; i < 100000; i++) {
+        for (uint32_t i = 0; i < 50000; i++) {
             __asm__ volatile("nop");
         }
     }
