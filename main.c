@@ -1,35 +1,32 @@
 #include <stdint.h>
-#define RCC_BASE 0x40023800
-#define RCC_AHB1ENR (*(volatile uint32_t *)(RCC_BASE + 0x30))
-#define GPIO_AEN (1 << 0)
+#define PA1 1
+#define PA2 2
+#define PA3 3
+
 #define GPIOA 0x40020000
-#define PIN 5
-#define GPIO_MODER(x) (*(volatile uint32_t *)(x + 0x00))
-#define GPIO_MODER_MASK(x) (1 << (x * 2))
-#define GPIO_OSPEEDR(x) (*(volatile uint32_t *)(x + 0x08))
-#define GPIO_OSPEEDR_MASK(x) (0x01 << (x * 2))
-#define GPIO_BSRR(x) (*(volatile uint32_t *)(x + 0x18))
+#define GET_GPIOA_REGISTER(OFFSET) (*(volatile uint32_t *)(GPIOA + OFFSET))
+#define GPIOA_MODER GET_GPIOA_REGISTER(0x00)
+#define GPIOA_AFRL GET_GPIOA_REGISTER(0x20)
 
-int main(void) {
-    // Enable clock to GPIO A
-    RCC_AHB1ENR |= GPIO_AEN;
+#define TIM2 0x40000000
+#define GET_TIM2_REGISTER(OFFSET) (*(volatile uint32_t *)(TIM2 + OFFSET))
+#define TIM2_CR1 GET_TIM2_REGISTER(0x00)
+#define TIM2_CCMR1 GET_TIM2_REGISTER(0x18)
+#define TIM2_CCMR2 GET_TIM2_REGISTER(0x1c)
+#define TIM2_CCER GET_TIM2_REGISTER(0x20)
+#define TIM2_CCR2 GET_TIM2_REGISTER(0x38)
+#define TIM2_CCR3 GET_TIM2_REGISTER(0x3c)
+#define TIM2_CCR4 GET_TIM2_REGISTER(0x40)
+#define TIM2_PSC GET_TIM2_REGISTER(0x28)
+#define TIM2_CNT GET_TIM2_REGISTER(0x24)
+#define TIM2_ARR GET_TIM2_REGISTER(0x2c)
 
-    // Set bit 11 and 10 to 01 to enable output mode on pin 5
-    GPIO_MODER(GPIOA) |= GPIO_MODER_MASK(PIN);
+#define RCC 0x40023800
+#define GET_RCC_REGISTER(OFFSET) (*(volatile uint32_t *)(RCC + OFFSET))
+#define RCC_CR GET_RCC_REGISTER(0x00)
+#define RCC_PLLCFGR GET_RCC_REGISTER(0x04)
+#define RCC_CFGR GET_RCC_REGISTER(0x08)
+#define RCC_AHB1ENR GET_RCC_REGISTER(0x30)
+#define RCC_APB1ENR GET_RCC_REGISTER(0x40)
 
-    // Set the slew rate to medium
-    GPIO_OSPEEDR(GPIOA) |= GPIO_OSPEEDR_MASK(PIN);
-
-    for (;;) {
-        GPIO_BSRR(GPIOA) = (1 << PIN);
-        for (uint32_t i = 0; i < 400000; i++) {
-            __asm__ volatile("nop");
-        }
-        GPIO_BSRR(GPIOA) = (1 << PIN + 16);
-        for (uint32_t i = 0; i < 50000; i++) {
-            __asm__ volatile("nop");
-        }
-    }
-
-    return 0;
-}
+int main(void) { return 0; }
