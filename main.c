@@ -127,6 +127,7 @@ int main(void) {
 
     // Enable channel 1, 2, and 3 for PA0, PB3, and PB10
     TIM2_CCER |= (1U << 0) | (1U << 4) | (1U << 8);
+    TIM2_CCER |= (1U << 1) | (1U << 5) | (1U << 9);
 
     // Set channel 2, 3 and 4 to output mode
     TIM2_CCMR1 &= ~(3U << 8);
