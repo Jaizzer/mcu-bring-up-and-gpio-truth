@@ -1,21 +1,25 @@
 #include <stdint.h>
-#define PA1 1
-#define PA2 2
-#define PA3 3
+#define PB3 3
+#define PA0 0
+#define PB10 10
 
 #define GPIOA 0x40020000
+#define GPIOB 0x40020400
 #define GET_REGISTER(BASE, OFFSET) (*(volatile uint32_t *)(BASE + OFFSET))
 #define GPIOA_MODER GET_REGISTER(GPIOA, 0x00)
 #define GPIOA_AFRL GET_REGISTER(GPIOA, 0x20)
+#define GPIOB_MODER GET_REGISTER(GPIOB, 0x00)
+#define GPIOB_AFRL GET_REGISTER(GPIOB, 0x20)
+#define GPIOB_AFRH GET_REGISTER(GPIOB, 0x24)
 
 #define TIM2 0x40000000
 #define TIM2_CR1 GET_REGISTER(TIM2, 0x00)
 #define TIM2_CCMR1 GET_REGISTER(TIM2, 0x18)
 #define TIM2_CCMR2 GET_REGISTER(TIM2, 0x1c)
 #define TIM2_CCER GET_REGISTER(TIM2, 0x20)
+#define TIM2_CCR1 GET_REGISTER(TIM2, 0x34)
 #define TIM2_CCR2 GET_REGISTER(TIM2, 0x38)
 #define TIM2_CCR3 GET_REGISTER(TIM2, 0x3c)
-#define TIM2_CCR4 GET_REGISTER(TIM2, 0x40)
 #define TIM2_PSC GET_REGISTER(TIM2, 0x28)
 #define TIM2_CNT GET_REGISTER(TIM2, 0x24)
 #define TIM2_ARR GET_REGISTER(TIM2, 0x2c)
@@ -32,8 +36,9 @@
 #define FLASH_ACR GET_REGISTER(FLASH, 0x00)
 
 int main(void) {
-    // Enable GPIOA
+    // Enable GPIOB and GPIO A for PA0, PB3, PB10
     RCC_AHB1ENR |= (1U << 0);
+    RCC_AHB1ENR |= (1U << 1);
 
     // Turn on the HSE Clock
     RCC_CR |= (1U << 16);
@@ -91,13 +96,19 @@ int main(void) {
     // Enable TIMER 2
     RCC_APB1ENR |= (1U << 0);
 
-    // Set PA1, PA2, PA3 to alternating function since they will be controlled by the Timer 2
-    GPIOA_MODER &= ~(252U << 0);
-    GPIOA_MODER |= (2U << PA1 * 2) | (2U << PA2 * 2) | (2U << PA3 * 2);
+    // Set PA0, PB3, PB10 to alternating function since they will be controlled by the Timer 2
+    GPIOB_MODER &= ~((3U << PB3 * 2) | (3U << PB10 * 2));
+    GPIOB_MODER |= (2U << PB3 * 2) | (2U << PB10 * 2);
+    GPIOA_MODER &= ~((3U << PA0 * 2));
+    GPIOA_MODER |= (2U << PA0 * 2);
 
-    // Set the alternating functions of PA1, PA2, PA3 to AF1  which is the Timer 2
-    GPIOA_AFRL &= ~(65520U << 0);
-    GPIOA_AFRL |= (1U << 4) | (1U << 8) | (1U << 12);
+    // Set the alternating functions of PA0, PB3, PB10 to AF1  which is the Timer 2
+    GPIOA_AFRL &= ~(15U << 0);
+    GPIOA_AFRL |= (1U << 0);
+    GPIOB_AFRL &= ~(15U << 12);
+    GPIOB_AFRL |= (1U << 12);
+    GPIOB_AFRH &= ~(15U << 8);
+    GPIOB_AFRH |= (1U << 8);
 
     // Slow down the clock to 10KHz by dividing 96MHz by (9599 + 1)
     TIM2_PSC = 9599U;
@@ -105,31 +116,32 @@ int main(void) {
     // Reset the counter every 4 second by setting ARR to 39999 + 1
     TIM2_ARR = 39999U;
 
-    // Set the CCR2 value to 1 second for Pin 1
-    TIM2_CCR2 = 10000U;
+    // Set the CCR1 value to 2 second for PA0
+    TIM2_CCR1 = 10000U;
 
-    // Set the CCR3 value to 2 second for Pin 2
-    TIM2_CCR3 = 20000U;
+    // Set the CCR2 value to 2 second for PB3
+    TIM2_CCR2 = 20000U;
 
-    // Set the CCR4 value to 3 second for Pin 3
-    TIM2_CCR4 = 30000U;
+    // Set the CCR3 value to 3 second for PB10
+    TIM2_CCR3 = 30000U;
 
-    // Enable channel 2, 3, and 4 for Pin 1, Pin 2, and Pin 3
-    TIM2_CCER |= (1U << 4) | (1U << 8) | (1U << 12);
+    // Enable channel 1, 2, and 3 for PA0, PB3, and PB10
+    TIM2_CCER |= (1U << 0) | (1U << 4) | (1U << 8);
 
     // Set channel 2, 3 and 4 to output mode
     TIM2_CCMR1 &= ~(3U << 8);
     TIM2_CCMR2 &= ~((3U << 0) | (3U << 8));
 
     // Turn off the signal once the timer exceeds the assigned time for that channel pin
-    TIM2_CCMR1 &= ~(7U << 12);
-    TIM2_CCMR1 |= (6U << 12);
-    TIM2_CCMR2 &= ~((7U << 4) | (7U << 12));
-    TIM2_CCMR2 |= (6U << 4) | (6U << 12);
+    TIM2_CCMR1 &= ~((7U << 4) | (7U << 12));
+    TIM2_CCMR1 |= (6U << 4) | (6U << 12);
+    TIM2_CCMR2 &= ~(7U << 4);
+    TIM2_CCMR2 |= (6U << 4);
 
     // Enable preload to prevent glitches
-    TIM2_CCMR1 |= (1U << 11);
-    TIM2_CCMR2 |= (1U << 11) | (1U << 3);
+    TIM2_CCMR1 |= (1U << 11) | (1U << 3);
+    ;
+    TIM2_CCMR2 |= 1U << 3;
 
     // Force an update to load the PSC and ARR values immediately
     TIM2_EGR |= (1U << 0);
